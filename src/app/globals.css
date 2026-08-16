@@ -1,26 +1,11 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Fugaz+One&display=swap');
+@import 'tailwindcss';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@theme {
+  --font-logo: 'Fugaz One', system-ui, sans-serif;
+  --font-round: 'Baloo 2', system-ui, sans-serif;
+  --color-cream: #fbf3e4;
+  --color-hotpink: #e93a9a;
+  --color-lima: #84cc16;
+  --color-azul: #2563eb;
 }

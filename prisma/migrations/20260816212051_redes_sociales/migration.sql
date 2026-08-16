@@ -1,0 +1,9 @@
+-- CreateTable
+CREATE TABLE "SocialNetwork" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "name" TEXT NOT NULL,
+    "url" TEXT NOT NULL,
+    "iconName" TEXT NOT NULL DEFAULT 'link',
+    "active" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

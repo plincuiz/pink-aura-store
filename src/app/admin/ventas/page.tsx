@@ -1,0 +1,166 @@
+import { prisma } from '@/lib/prisma';
+import { currentMonthRange } from '@/lib/month';
+import { logoutAction } from '../actions';
+import { AdminNav } from '../nav';
+import { createSale } from './actions';
+export const dynamic = 'force-dynamic';
+const money = (n: number) => '$' + n.toLocaleString('es-AR');
+const input =
+  'w-full rounded-xl border-2 border-hotpink bg-white px-3 py-2 font-round text-sm font-semibold text-neutral-800 outline-none focus:border-azul';
+const label = 'mb-1 block font-round text-sm font-bold text-neutral-600';
+export default async function VentasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const params = await searchParams;
+  const products = await prisma.product.findMany({ orderBy: { name: 'asc' } });
+  const { start, end } = currentMonthRange();
+  const month = await prisma.sale.aggregate({
+    where: { date: { gte: start, lt: end } },
+    _sum: { total: true, quantity: true },
+  });
+  const sales = await prisma.sale.findMany({
+    orderBy: { date: 'desc' },
+    take: 50,
+    include: { product: true },
+  });
+  return (
+    <main className="min-h-screen bg-cream text-neutral-800">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b-4 border-hotpink px-6 py-4">
+        <h1 className="font-logo text-xl text-hotpink">VENTAS</h1>
+        <div className="flex flex-wrap items-center gap-4">
+          <AdminNav current="ventas" />
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              className="font-round text-sm font-bold text-red-500 hover:underline"
+            >
+              Salir
+            </button>
+          </form>
+        </div>
+      </header>
+      <section className="mx-auto max-w-6xl px-6 py-8">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border-4 border-lima bg-white p-5 shadow-[4px_4px_0_rgba(132,204,22,0.3)]">
+            <p className="font-round text-sm font-bold text-neutral-500">
+              Ventas del mes
+            </p>
+            <p className="mt-1 font-round text-2xl font-extrabold text-lima">
+              {money(month._sum.total ?? 0)}
+            </p>
+          </div>
+          <div className="rounded-2xl border-4 border-hotpink bg-white p-5 shadow-[4px_4px_0_rgba(233,58,154,0.25)]">
+            <p className="font-round text-sm font-bold text-neutral-500">
+              Unidades vendidas
+            </p>
+            <p className="mt-1 font-round text-2xl font-extrabold text-hotpink">
+              {month._sum.quantity ?? 0}
+            </p>
+          </div>
+        </div>
+        {params.error === 'stock' ? (
+          <p className="mt-4 rounded-xl border-2 border-red-500 bg-red-100 px-4 py-2 font-round text-sm font-bold text-red-600">
+            Stock insuficiente para registrar esa venta
+          </p>
+        ) : params.error ? (
+          <p className="mt-4 rounded-xl border-2 border-red-500 bg-red-100 px-4 py-2 font-round text-sm font-bold text-red-600">
+            Completá producto y cantidad
+          </p>
+        ) : null}
+        <form
+          action={createSale}
+          className="mt-6 grid gap-4 rounded-2xl border-4 border-hotpink bg-white p-6 shadow-[5px_5px_0_rgba(233,58,154,0.25)] sm:grid-cols-2 lg:grid-cols-5"
+        >
+          <div className="lg:col-span-2">
+            <label className={label} htmlFor="productId">Producto</label>
+            <select id="productId" name="productId" required className={input}>
+              <option value="">Seleccionar…</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} (stock: {p.stock})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className={label} htmlFor="quantity">Cantidad</label>
+            <input
+              id="quantity"
+              name="quantity"
+              type="number"
+              min={1}
+              required
+              defaultValue={1}
+              className={input}
+            />
+          </div>
+          <div>
+            <label className={label} htmlFor="unitPrice">Precio unit.</label>
+            <input
+              id="unitPrice"
+              name="unitPrice"
+              type="number"
+              min={0}
+              placeholder="usa precio actual"
+              className={input}
+            />
+          </div>
+          <div>
+            <label className={label} htmlFor="date">Fecha</label>
+            <input id="date" name="date" type="date" className={input} />
+          </div>
+          <div className="lg:col-span-4">
+            <label className={label} htmlFor="notes">Observaciones</label>
+            <input id="notes" name="notes" className={input} />
+          </div>
+          <div className="flex items-end">
+            <button
+              type="submit"
+              className="w-full rounded-full bg-hotpink py-2 font-round text-sm font-extrabold text-white shadow-[2px_2px_0_rgba(0,0,0,0.15)] transition hover:scale-[1.02]"
+            >
+              Registrar venta
+            </button>
+          </div>
+        </form>
+        <div className="mt-6 overflow-x-auto rounded-2xl border-4 border-hotpink bg-white shadow-[5px_5px_0_rgba(233,58,154,0.25)]">
+          <table className="w-full text-left font-round text-sm">
+            <thead className="bg-pink-100 text-neutral-600">
+              <tr>
+                <th className="px-4 py-3">Fecha</th>
+                <th className="px-4 py-3">Producto</th>
+                <th className="px-4 py-3">Cant.</th>
+                <th className="px-4 py-3">Precio unit.</th>
+                <th className="px-4 py-3">Total</th>
+                <th className="px-4 py-3">Obs.</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-pink-200">
+              {sales.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-6 text-center text-neutral-500">
+                    Todavía no hay ventas cargadas
+                  </td>
+                </tr>
+              ) : (
+                sales.map((v) => (
+                  <tr key={v.id}>
+                    <td className="px-4 py-3">{v.date.toLocaleDateString('es-AR')}</td>
+                    <td className="px-4 py-3 font-bold text-azul">{v.product.name}</td>
+                    <td className="px-4 py-3 font-bold">{v.quantity}</td>
+                    <td className="px-4 py-3">{money(v.unitPrice)}</td>
+                    <td className="px-4 py-3 font-extrabold text-lima">
+                      {money(v.total)}
+                    </td>
+                    <td className="px-4 py-3 text-neutral-500">{v.notes ?? '—'}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  );
+}
