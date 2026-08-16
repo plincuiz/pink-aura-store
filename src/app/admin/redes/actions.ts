@@ -1,9 +1,8 @@
 'use server';
-import fs from 'fs/promises';
-import path from 'path';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { saveFile } from '@/lib/storage';
 
 export async function createSocial(formData: FormData) {
   const name = String(formData.get('name') ?? '').trim();
@@ -25,16 +24,11 @@ export async function deleteSocial(formData: FormData) {
 export async function updateLogo(formData: FormData) {
   const file = formData.get('logo');
   if (file && typeof file !== 'string' && file.size > 0) {
-    const dir = path.join(process.cwd(), 'public', 'uploads');
-    await fs.mkdir(dir, { recursive: true });
-    const ext = (file.name.split('.').pop() ?? 'png').toLowerCase();
-    const name = `logo-${Date.now()}.${ext}`;
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await fs.writeFile(path.join(dir, name), buffer);
+    const url = await saveFile(file, 'logo');
     await prisma.setting.upsert({
       where: { key: 'logoUrl' },
-      update: { value: `/uploads/${name}` },
-      create: { key: 'logoUrl', value: `/uploads/${name}` },
+      update: { value: url },
+      create: { key: 'logoUrl', value: url },
     });
   }
   revalidatePath('/', 'layout');

@@ -1,9 +1,8 @@
 'use server';
-import fs from 'fs/promises';
-import path from 'path';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { saveFile } from '@/lib/storage';
 
 function calcPrice(cost: number | null, margin: number | null): number | null {
   if (cost == null) return null;
@@ -17,16 +16,9 @@ async function saveImages(formData: FormData, productId: number) {
     (f): f is File => typeof f !== 'string' && f.size > 0
   );
   if (valid.length === 0) return;
-  const dir = path.join(process.cwd(), 'public', 'uploads', 'productos');
-  await fs.mkdir(dir, { recursive: true });
   for (const file of valid) {
-    const base = file.name.replace(/[^a-zA-Z0-9.]+/g, '-').toLowerCase();
-    const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${base}`;
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await fs.writeFile(path.join(dir, name), buffer);
-    await prisma.productImage.create({
-      data: { url: `/uploads/productos/${name}`, productId },
-    });
+    const url = await saveFile(file, 'productos');
+    await prisma.productImage.create({ data: { url, productId } });
   }
 }
 
