@@ -26,7 +26,9 @@ export function AddToCart({
   return (
     <button
       type="button"
-      onClick={() => {
+      onClick={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
         const items = readCart();
         const found = items.find((i) => i.id === id);
         if (found) found.qty += 1;
@@ -37,8 +39,8 @@ export function AddToCart({
       }}
       className={
         qty > 0
-          ? 'rounded-full border-2 border-lima bg-lime-100 px-4 py-2 font-round text-sm font-bold text-lime-700 transition hover:bg-lime-200'
-          : 'rounded-full bg-hotpink px-4 py-2 font-round text-sm font-bold text-white shadow-[2px_2px_0_rgba(0,0,0,0.15)] transition hover:scale-105'
+          ? 'rounded-lg border border-pink-400 bg-pink-500/10 px-3 py-2 text-sm font-semibold text-pink-400 hover:bg-pink-500/20'
+          : 'rounded-lg bg-pink-500 px-3 py-2 text-sm font-semibold text-white hover:bg-pink-600'
       }
     >
       {added
