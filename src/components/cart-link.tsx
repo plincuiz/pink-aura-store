@@ -14,7 +14,7 @@ export function CartLink() {
   return (
     <a
       href="/carrito"
-      className="rounded-full bg-hotpink px-4 py-1 font-round text-xs font-bold text-white shadow-[2px_2px_0_rgba(0,0,0,0.15)] transition hover:scale-105"
+      className="mt-2 rounded-full bg-hotpink px-7 py-3 font-round text-base font-extrabold text-white shadow-[4px_4px_0_rgba(0,0,0,0.15)] transition hover:scale-105"
     >
       Carrito{count > 0 ? ` (${count})` : ''}
     </a>

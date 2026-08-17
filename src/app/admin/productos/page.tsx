@@ -1,13 +1,15 @@
 import { prisma } from '@/lib/prisma';
+import { requirePerm, roleCan } from '@/lib/auth';
 import { deleteProduct } from './actions';
 import { ConfirmDeleteButton } from './confirm-button';
 import { AdminNav } from '../nav';
 export const dynamic = 'force-dynamic';
 const money = (n: number) => '$' + n.toLocaleString('es-AR');
 export default async function ProductosPage() {
+  const me = await requirePerm('productos');
   const products = await prisma.product.findMany({
     orderBy: { name: 'asc' },
-    include: { images: true },
+    include: { images: true, section: true },
   });
   return (
     <main className="min-h-screen bg-cream text-neutral-800">
@@ -30,6 +32,7 @@ export default async function ProductosPage() {
               <tr>
                 <th className="px-4 py-3">Foto</th>
                 <th className="px-4 py-3">Producto</th>
+                <th className="px-4 py-3">Sección</th>
                 <th className="px-4 py-3">Costo</th>
                 <th className="px-4 py-3">Margen %</th>
                 <th className="px-4 py-3">Precio venta</th>
@@ -56,6 +59,11 @@ export default async function ProductosPage() {
                     </td>
                     <td className="px-4 py-3 font-bold text-azul">{p.name}</td>
                     <td className="px-4 py-3">
+                      <span className="rounded-full border-2 border-hotpink bg-pink-100 px-2 py-0.5 text-xs font-extrabold text-hotpink">
+                        {p.section?.name ?? '—'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
                       {p.cost != null ? money(p.cost) : '—'}
                     </td>
                     <td className="px-4 py-3">
@@ -76,10 +84,12 @@ export default async function ProductosPage() {
                         >
                           Editar
                         </a>
-                        <form action={deleteProduct}>
-                          <input type="hidden" name="id" value={p.id} />
-                          <ConfirmDeleteButton />
-                        </form>
+                        {roleCan(me.role, 'productos-delete') ? (
+                          <form action={deleteProduct}>
+                            <input type="hidden" name="id" value={p.id} />
+                            <ConfirmDeleteButton />
+                          </form>
+                        ) : null}
                       </div>
                     </td>
                   </tr>

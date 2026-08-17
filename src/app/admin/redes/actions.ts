@@ -3,8 +3,10 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { saveFile } from '@/lib/storage';
+import { requirePerm } from '@/lib/auth';
 
 export async function createSocial(formData: FormData) {
+  await requirePerm('redes');
   const name = String(formData.get('name') ?? '').trim();
   const url = String(formData.get('url') ?? '').trim();
   const iconName = String(formData.get('iconName') ?? 'link').trim();
@@ -15,6 +17,7 @@ export async function createSocial(formData: FormData) {
 }
 
 export async function deleteSocial(formData: FormData) {
+  await requirePerm('redes');
   const id = parseInt(String(formData.get('id') ?? ''), 10);
   if (!isNaN(id)) await prisma.socialNetwork.delete({ where: { id } });
   revalidatePath('/', 'layout');
@@ -22,6 +25,7 @@ export async function deleteSocial(formData: FormData) {
 }
 
 export async function updateLogo(formData: FormData) {
+  await requirePerm('redes');
   const file = formData.get('logo');
   if (file && typeof file !== 'string' && file.size > 0) {
     const url = await saveFile(file, 'logo');
@@ -36,6 +40,7 @@ export async function updateLogo(formData: FormData) {
 }
 
 export async function updateContact(formData: FormData) {
+  await requirePerm('redes');
   const phone = String(formData.get('phone') ?? '').trim();
   const email = String(formData.get('email') ?? '').trim();
   await prisma.setting.upsert({

@@ -1,44 +1,110 @@
-import { createHmac, timingSafeEqual } from 'crypto';
+import crypto from 'crypto';
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { prisma } from '@/lib/prisma';
 
-const SECRET = process.env.ADMIN_SECRET ?? 'secreto-desarrollo';
-const COOKIE_NAME = 'pa_admin_session';
+const COOKIE = 'pa_session';
 
-function expectedToken(): string {
-  return createHmac('sha256', SECRET)
-    .update('pink-aura-admin-session')
-    .digest('hex');
+export type Perm =
+  | 'panel'
+  | 'productos'
+  | 'productos-delete'
+  | 'compras'
+  | 'ventas'
+  | 'pedidos'
+  | 'pedidos-confirm'
+  | 'pedidos-cancel'
+  | 'pedidos-entregar'
+  | 'redes'
+  | 'usuarios'
+  | 'secciones';
+
+const ROLE_PERMS: Record<string, Perm[]> = {
+  superadmin: [
+    'panel', 'productos', 'productos-delete', 'compras', 'ventas',
+    'pedidos', 'pedidos-confirm', 'pedidos-cancel', 'pedidos-entregar',
+    'redes', 'usuarios', 'secciones',
+  ],
+  admin: [
+    'panel', 'productos', 'compras', 'ventas', 'secciones',
+    'pedidos', 'pedidos-confirm', 'pedidos-cancel', 'pedidos-entregar',
+  ],
+  ventas: ['ventas', 'pedidos', 'pedidos-confirm'],
+};
+
+export const ROLES = ['superadmin', 'admin', 'ventas'] as const;
+
+function secret() {
+  return process.env.ADMIN_SECRET ?? 'pink-aura-secret';
 }
 
-export async function createSessionCookie() {
-  const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, expectedToken(), {
-    httpOnly: true,
-    sameSite: 'lax',
-    path: '/',
-  });
+export function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(8).toString('hex');
+  const hash = crypto.scryptSync(password, salt, 32).toString('hex');
+  return `${salt}:${hash}`;
 }
 
-export async function deleteSessionCookie() {
+export function verifyPassword(password: string, stored: string): boolean {
+  const [salt, hash] = stored.split(':');
+  if (!salt || !hash) return false;
+  const calc = crypto.scryptSync(password, salt, 32);
+  const expected = Buffer.from(hash, 'hex');
+  return (
+    calc.length === expected.length &&
+    crypto.timingSafeEqual(calc, expected)
+  );
+}
+
+function sign(value: string): string {
+  return crypto.createHmac('sha256', secret()).update(value).digest('hex');
+}
+
+export async function currentUser() {
   const cookieStore = await cookies();
-  cookieStore.delete(COOKIE_NAME);
+  const c = cookieStore.get(COOKIE)?.value;
+  if (!c) return null;
+  const [id, sig] = c.split('.');
+  if (!id || sig !== sign(id)) return null;
+  return prisma.user.findUnique({ where: { id: Number(id) } });
 }
 
 export async function isAdmin(): Promise<boolean> {
-  const cookieStore = await cookies();
-  const value = cookieStore.get(COOKIE_NAME)?.value;
-  if (!value) return false;
-  const expected = expectedToken();
-  const a = Buffer.from(value);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
+  return (await currentUser()) != null;
 }
 
-export function checkCredentials(email: string, password: string): boolean {
-  const okEmail =
-    email.trim().toLowerCase() ===
-    (process.env.ADMIN_EMAIL ?? '').toLowerCase();
-  const okPass = password === (process.env.ADMIN_PASSWORD ?? '');
-  return okEmail && okPass && password.length > 0;
+export function roleCan(role: string, perm: Perm): boolean {
+  return (ROLE_PERMS[role] ?? []).includes(perm);
+}
+
+export async function can(perm: Perm): Promise<boolean> {
+  const u = await currentUser();
+  return !!u && roleCan(u.role, perm);
+}
+
+export function roleHome(role: string): string {
+  if (roleCan(role, 'panel')) return '/admin';
+  if (roleCan(role, 'pedidos')) return '/admin/pedidos';
+  return '/login';
+}
+
+export async function requirePerm(perm: Perm) {
+  const u = await currentUser();
+  if (!u) redirect('/login');
+  if (!roleCan(u.role, perm)) redirect(roleHome(u.role));
+  return u;
+}
+
+export async function createSession(userId: number) {
+  const cookieStore = await cookies();
+  cookieStore.set(COOKIE, `${userId}.${sign(String(userId))}`, {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 7,
+  });
+}
+
+export async function destroySession() {
+  const cookieStore = await cookies();
+  cookieStore.delete(COOKIE);
 }

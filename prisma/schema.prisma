@@ -12,6 +12,10 @@ model Product {
   name          String
   description   String?
   category      String?
+  sectionId     Int?
+  section       Section? @relation(fields: [sectionId], references: [id])
+  sectionId     Int?
+  section       Section? @relation(fields: [sectionId], references: [id])
   imageUrl      String?
   stock         Int            @default(0)
   minStock      Int            @default(0)
@@ -96,4 +100,42 @@ model Setting {
   id    Int    @id @default(autoincrement())
   key   String @unique
   value String
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("superadmin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Section {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  active    Boolean   @default(true)
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  products  Product[]
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("superadmin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Section {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  active    Boolean   @default(true)
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  products  Product[]
 }

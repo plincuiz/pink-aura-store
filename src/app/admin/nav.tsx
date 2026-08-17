@@ -1,25 +1,28 @@
 import { prisma } from '@/lib/prisma';
+import { requirePerm, roleCan, type Perm } from '@/lib/auth';
 
-const links = [
-  { href: '/admin', label: 'Panel', key: 'panel' },
-  { href: '/admin/productos', label: 'Productos', key: 'productos' },
-  { href: '/admin/compras', label: 'Compras', key: 'compras' },
-  { href: '/admin/ventas', label: 'Ventas', key: 'ventas' },
-  { href: '/admin/pedidos', label: 'Pedidos', key: 'pedidos' },
-  { href: '/admin/redes', label: 'Redes', key: 'redes' },
-] as const;
+const links: { href: string; label: string; key: string; perm: Perm }[] = [
+  { href: '/admin', label: 'Panel', key: 'panel', perm: 'panel' },
+  { href: '/admin/productos', label: 'Productos', key: 'productos', perm: 'productos' },
+  { href: '/admin/secciones', label: 'Secciones', key: 'secciones', perm: 'secciones' },
+  { href: '/admin/compras', label: 'Compras', key: 'compras', perm: 'compras' },
+  { href: '/admin/ventas', label: 'Ventas', key: 'ventas', perm: 'ventas' },
+  { href: '/admin/pedidos', label: 'Pedidos', key: 'pedidos', perm: 'pedidos' },
+  { href: '/admin/redes', label: 'Redes', key: 'redes', perm: 'redes' },
+  { href: '/admin/usuarios', label: 'Usuarios', key: 'usuarios', perm: 'usuarios' },
+];
 
-export async function AdminNav({
-  current,
-}: {
-  current: 'panel' | 'productos' | 'compras' | 'ventas' | 'pedidos' | 'redes';
-}) {
-  const pendientes = await prisma.order.count({
-    where: { estado: 'pendiente' },
-  });
+export async function AdminNav({ current }: { current: string }) {
+  const me = await requirePerm(
+    links.find((l) => l.key === current)?.perm ?? 'panel'
+  );
+  const visibles = links.filter((l) => roleCan(me.role, l.perm));
+  const pendientes = roleCan(me.role, 'pedidos')
+    ? await prisma.order.count({ where: { estado: 'pendiente' } })
+    : 0;
   return (
     <nav className="flex flex-wrap items-center gap-1 rounded-full border-2 border-hotpink bg-white p-1">
-      {links.map((l) => (
+      {visibles.map((l) => (
         <a
           key={l.key}
           href={l.href}

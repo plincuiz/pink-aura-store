@@ -1,73 +1,51 @@
 import { prisma } from '@/lib/prisma';
-import { AddToCart } from '@/components/add-to-cart';
 import { SiteHeader } from '@/components/header';
+import { ProductCard } from '@/components/product-card';
+
 export const dynamic = 'force-dynamic';
+
 export default async function Home() {
-  const products = await prisma.product.findMany({
-    where: { active: true },
-    orderBy: { name: 'asc' },
-    include: { images: true },
-  });
+  const [sections, featured] = await Promise.all([
+    prisma.section.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    }),
+    prisma.product.findMany({
+      where: { active: true, featured: true },
+      orderBy: { name: 'asc' },
+      include: { images: true },
+    }),
+  ]);
   return (
     <main className="min-h-screen bg-cream text-neutral-800">
       <SiteHeader />
-      <section className="mx-auto grid max-w-6xl grid-cols-1 gap-5 px-6 py-8 sm:grid-cols-2 lg:grid-cols-3">
-        {products.map((product) => {
-          const cover = product.images[0]?.url ?? product.imageUrl;
-          const sinStock = product.stock <= 0;
-          return (
-            <article
-              key={product.id}
-              className="relative flex flex-col justify-between rounded-2xl border-4 border-hotpink bg-white p-4 shadow-[5px_5px_0_rgba(233,58,154,0.25)]"
-            >
-              {product.featured ? (
-                <span className="absolute -right-2 -top-3 z-10 rotate-6 rounded-full bg-lima px-3 py-1 font-round text-xs font-extrabold text-white shadow">
-                  ★ TOP
-                </span>
-              ) : null}
-              <a href={`/producto/${product.id}`} className="block">
-                <div className="relative mb-3">
-                  {cover ? (
-                    <img
-                      src={cover}
-                      alt={product.name}
-                      className="aspect-square w-full rounded-xl bg-pink-100 object-contain p-2"
-                    />
-                  ) : null}
-                  {sinStock && cover ? (
-                    <span className="absolute right-2 top-2 rounded-full bg-red-500 px-3 py-1 font-round text-xs font-extrabold text-white">
-                      Sin stock
-                    </span>
-                  ) : null}
-                </div>
-                <h2 className="font-round text-lg font-extrabold text-azul">
-                  {product.name}
-                </h2>
-                {product.description ? (
-                  <p className="mt-1 line-clamp-2 font-round text-sm font-semibold text-neutral-500">
-                    {product.description}
-                  </p>
-                ) : null}
-              </a>
-              <div className="mt-4 flex items-center justify-between gap-2">
-                <span className="font-round text-xl font-extrabold text-lima">
-                  {product.price != null ? `$${product.price}` : 'A confirmar'}
-                </span>
-                {sinStock ? (
-                  <span className="font-round text-xs font-extrabold text-red-500">
-                    Sin stock
-                  </span>
-                ) : (
-                  <AddToCart
-                    id={product.id}
-                    name={product.name}
-                    price={product.price}
-                  />
-                )}
-              </div>
-            </article>
-          );
-        })}
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-4 px-6 pt-8">
+        <a href="/top" className="rounded-full border-4 border-lima bg-white px-8 py-4 font-logo text-xl uppercase text-lime-700 shadow-[5px_5px_0_rgba(132,204,22,0.35)] transition hover:scale-105 hover:bg-lima hover:text-white sm:text-2xl">★ TOP</a>
+        {sections.map((s) => (
+          <a
+            key={s.id}
+            href={`/seccion/${s.id}`}
+            className="rounded-full border-4 border-hotpink bg-white px-8 py-4 font-logo text-xl uppercase text-hotpink shadow-[5px_5px_0_rgba(233,58,154,0.35)] transition hover:scale-105 hover:bg-hotpink hover:text-white sm:text-2xl"
+          >
+            {s.name}
+          </a>
+        ))}
+      </div>
+      <section className="mx-auto max-w-6xl px-6 py-10">
+        <h2 className="text-center font-logo text-2xl text-hotpink drop-shadow-[2px_2px_0_rgba(132,204,22,0.35)] sm:text-3xl">
+          ★ TOP
+        </h2>
+        {featured.length === 0 ? (
+          <p className="mt-6 rounded-2xl border-4 border-hotpink bg-white p-6 text-center font-round text-sm font-bold text-neutral-500 shadow-[5px_5px_0_rgba(233,58,154,0.25)]">
+            Todavía no hay productos destacados.
+          </p>
+        ) : (
+          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {featured.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        )}
       </section>
     </main>
   );

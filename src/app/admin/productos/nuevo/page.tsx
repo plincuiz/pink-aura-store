@@ -1,12 +1,16 @@
+import { prisma } from '@/lib/prisma';
 import { createProduct } from '../actions';
 import { ProductForm } from '../form';
-export default function NuevoProductoPage() {
+export default async function NuevoProductoPage() {
+  const sections = await prisma.section.findMany({
+    orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+  });
   return (
     <main className="min-h-screen bg-cream px-6 py-10 text-neutral-800">
       <div className="mx-auto max-w-xl">
         <h1 className="font-logo text-2xl text-hotpink">NUEVO PRODUCTO</h1>
         <div className="mt-6 rounded-2xl border-4 border-hotpink bg-white p-6 shadow-[5px_5px_0_rgba(233,58,154,0.25)]">
-          <ProductForm action={createProduct} />
+          <ProductForm action={createProduct} sections={sections} />
         </div>
         <a
           href="/admin/productos"

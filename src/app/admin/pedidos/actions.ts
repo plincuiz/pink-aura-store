@@ -2,8 +2,10 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { requirePerm } from '@/lib/auth';
 
 export async function confirmOrder(formData: FormData) {
+  await requirePerm('pedidos-confirm');
   const id = parseInt(String(formData.get('id') ?? ''), 10);
   if (isNaN(id)) redirect('/admin/pedidos');
   const order = await prisma.order.findUnique({
@@ -32,7 +34,7 @@ export async function confirmOrder(formData: FormData) {
           unitPrice: item.precioSnapshot,
           total: item.subtotal,
           notes: `Pedido #${order.id}`,
-        },
+        }
       })
     ),
     ...order.items.map((item) =>
@@ -47,6 +49,7 @@ export async function confirmOrder(formData: FormData) {
 }
 
 export async function cancelOrder(formData: FormData) {
+  await requirePerm('pedidos-cancel');
   const id = parseInt(String(formData.get('id') ?? ''), 10);
   if (isNaN(id)) redirect('/admin/pedidos');
   await prisma.order.update({
@@ -58,6 +61,7 @@ export async function cancelOrder(formData: FormData) {
 }
 
 export async function deliverOrder(formData: FormData) {
+  await requirePerm('pedidos-entregar');
   const id = parseInt(String(formData.get('id') ?? ''), 10);
   if (isNaN(id)) redirect('/admin/pedidos');
   await prisma.order.update({

@@ -7,13 +7,16 @@ const input =
 const label = 'mb-1 block font-round text-sm font-bold text-neutral-600';
 
 type Initial = Product & { images: ProductImage[] };
+type Section = { id: number; name: string };
 
 export function ProductForm({
   initial,
   action,
+  sections,
 }: {
   initial?: Initial;
   action: (formData: FormData) => Promise<void>;
+  sections: Section[];
 }) {
   const [cost, setCost] = useState(
     initial?.cost != null ? String(initial.cost) : ''
@@ -57,7 +60,29 @@ export function ProductForm({
           className={input}
         />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div>
+          <label className={label} htmlFor="sectionId">Sección</label>
+          <select
+            id="sectionId"
+            name="sectionId"
+            required
+            defaultValue={
+              initial?.sectionId != null
+                ? String(initial.sectionId)
+                : sections[0]
+                  ? String(sections[0].id)
+                  : ''
+            }
+            className={input}
+          >
+            {sections.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <div>
           <label className={label} htmlFor="category">Categoría</label>
           <input

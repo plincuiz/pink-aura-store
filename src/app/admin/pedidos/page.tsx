@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { requirePerm, roleCan } from '@/lib/auth';
 import { logoutAction } from '../actions';
 import { AdminNav } from '../nav';
 import { cancelOrder, confirmOrder, deliverOrder } from './actions';
@@ -18,6 +19,10 @@ export default async function PedidosPage({
 }: {
   searchParams: Promise<{ error?: string; id?: string }>;
 }) {
+  const me = await requirePerm('pedidos');
+  const canConfirm = roleCan(me.role, 'pedidos-confirm');
+  const canCancel = roleCan(me.role, 'pedidos-cancel');
+  const canEntregar = roleCan(me.role, 'pedidos-entregar');
   const params = await searchParams;
   const orders = await prisma.order.findMany({
     orderBy: { createdAt: 'desc' },
@@ -102,24 +107,28 @@ export default async function PedidosPage({
               <div className="mt-4 flex flex-wrap gap-2">
                 {o.estado === 'pendiente' ? (
                   <>
-                    <form action={confirmOrder}>
-                      <input type="hidden" name="id" value={o.id} />
-                      <ConfirmSubmit
-                        label="Confirmar (descuenta stock)"
-                        message={`¿Confirmar el pedido #${o.id}? Se descuenta stock y se registra como venta.`}
-                        className="rounded-full bg-lima px-4 py-2 font-round text-sm font-extrabold text-white shadow-[2px_2px_0_rgba(0,0,0,0.15)] transition hover:scale-105"
-                      />
-                    </form>
-                    <form action={cancelOrder}>
-                      <input type="hidden" name="id" value={o.id} />
-                      <ConfirmSubmit
-                        label="Cancelar"
-                        message={`¿Cancelar el pedido #${o.id}?`}
-                        className="rounded-full border-2 border-red-500 px-4 py-2 font-round text-sm font-extrabold text-red-500 hover:bg-red-100"
-                      />
-                    </form>
+                    {canConfirm ? (
+                      <form action={confirmOrder}>
+                        <input type="hidden" name="id" value={o.id} />
+                        <ConfirmSubmit
+                          label="Confirmar (descuenta stock)"
+                          message={`¿Confirmar el pedido #${o.id}? Se descuenta stock y se registra como venta.`}
+                          className="rounded-full bg-lima px-4 py-2 font-round text-sm font-extrabold text-white shadow-[2px_2px_0_rgba(0,0,0,0.15)] transition hover:scale-105"
+                        />
+                      </form>
+                    ) : null}
+                    {canCancel ? (
+                      <form action={cancelOrder}>
+                        <input type="hidden" name="id" value={o.id} />
+                        <ConfirmSubmit
+                          label="Cancelar"
+                          message={`¿Cancelar el pedido #${o.id}?`}
+                          className="rounded-full border-2 border-red-500 px-4 py-2 font-round text-sm font-extrabold text-red-500 hover:bg-red-100"
+                        />
+                      </form>
+                    ) : null}
                   </>
-                ) : o.estado === 'confirmado' ? (
+                ) : o.estado === 'confirmado' && canEntregar ? (
                   <form action={deliverOrder}>
                     <input type="hidden" name="id" value={o.id} />
                     <ConfirmSubmit
