@@ -14,8 +14,6 @@ model Product {
   category      String?
   sectionId     Int?
   section       Section? @relation(fields: [sectionId], references: [id])
-  sectionId     Int?
-  section       Section? @relation(fields: [sectionId], references: [id])
   imageUrl      String?
   stock         Int            @default(0)
   minStock      Int            @default(0)
@@ -121,7 +119,6 @@ model Section {
   products  Product[]
 }
 
-model User {
   id        Int      @id @default(autoincrement())
   name      String
   email     String   @unique
@@ -131,7 +128,6 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
-model Section {
   id        Int       @id @default(autoincrement())
   name      String    @unique
   active    Boolean   @default(true)
