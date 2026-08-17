@@ -1,5 +1,6 @@
 'use server';
 import { prisma } from '@/lib/prisma';
+import { sendOrderEmail } from '@/lib/email';
 import type { CartItem } from '@/lib/cart';
 
 type OrderData = {
@@ -50,19 +51,11 @@ export async function createOrder(
     include: { items: true },
   });
 
-  const detalle = order.items
-    .map((l) => `${l.cantidad} x ${l.nombreSnapshot} - $${l.precioSnapshot} c/u`)
-    .join('\n');
-  console.log(`
-==== NUEVO PEDIDO PINK AURA #${order.id} ====
-Cliente: ${order.nombre} ${order.apellido}
-Email: ${order.email}
-Celular: ${order.celular}
-Productos:
-${detalle}
-Total: $${order.total}
-Observaciones: ${order.observaciones ?? '-'}
-=============================================`);
+  try {
+    await sendOrderEmail(order);
+  } catch (e) {
+    console.error('No se pudo enviar el email del pedido:', e);
+  }
 
   return { ok: true, id: order.id };
 }
